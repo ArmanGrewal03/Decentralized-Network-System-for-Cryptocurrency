@@ -2,7 +2,7 @@
 
 A lightweight blockchain-based cryptocurrency implementation leveraging **FastAPI**, **gRPC**, and **RabbitMQ**. This project implements a distributed ledger with peer-to-peer synchronization, proof-of-work mining, and cryptographically signed transactions.
 
-## 🚀 Features
+##Features
 
 - **Distributed Ledger**: Immutable blockchain using SHA256 hashing and PoW.
 - **P2P Sync**: High-performance node-to-node synchronization via gRPC.
@@ -11,7 +11,7 @@ A lightweight blockchain-based cryptocurrency implementation leveraging **FastAP
 - **Modern Dashboard**: Real-time web interface for chain monitoring, mining, and transfers.
 - **RESTful API**: Clean FastAPI interface for external integrations.
 
-## 🛠️ Quick Start
+## Quick Start
 
 ### Local Installation
 
@@ -43,7 +43,7 @@ To spin up the full stack (including RabbitMQ) using Docker:
 docker-compose up --build
 ```
 
-## 🧪 Development
+## Development
 
 Tests are implemented using `pytest`:
 
