@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decentralized Cryptocurrency</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app">
+    <main class="main">
+      <div class="row-flex">
+        <section class="card wallet-card card-ledger">
+          <h2>Your Wallet</h2>
+          <div class="wallet-info">
+            <div class="field">
+              <label>Address</label>
+              <div class="input-group">
+                <input type="text" id="myAddress" placeholder="e.g. alice" readonly>
+                <button type="button" id="copyAddress" class="btn-icon">Copy</button>
+              </div>
+            </div>
+            <div class="balance-display">
+              <span class="label">Balance</span>
+              <span class="value" id="balance">0.00</span>
+              <span class="unit">COIN</span>
+            </div>
+            <button type="button" id="newAddress" class="btn outline full-width">Switch / Generate Wallet</button>
+          </div>
+        </section>
+
+        <section class="card send-card card-crypto">
+          <h2>Transfer</h2>
+          <form id="sendForm">
+            <div class="field">
+              <label>Recipient Address</label>
+              <input type="text" id="toAddress" placeholder="Enter address..." required>
+            </div>
+            <div class="field">
+              <label>Amount</label>
+              <input type="number" id="amount" placeholder="0.00" min="0.01" step="0.01" required>
+            </div>
+            <button type="submit" class="btn primary full-width">Send Transaction</button>
+          </form>
+          <div id="sendResult" class="result"></div>
+        </section>
+      </div>
+
+      <div class="row-flex">
+        <section class="card mine-card card-ledger">
+          <h2>Node Operations</h2>
+          <div class="node-stats">
+            <p>Pending: <strong id="pendingCount">0</strong> transactions</p>
+            <p>Difficulty: <strong>4</strong></p>
+          </div>
+          <button type="button" id="mineBtn" class="btn primary full-width">Mine New Block</button>
+          <div id="mineResult" class="result"></div>
+        </section>
+
+        <section class="card tx-card card-integration">
+          <h2>Recent Activity</h2>
+          <div class="tx-list" id="pendingList">
+            <div class="empty-state">No pending transactions</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card chain-card card-ledger">
+        <div class="card-header">
+          <h2>Blockchain Ledger</h2>
+          <div class="chain-meta">
+            <span>Height: <strong id="chainLength">0</strong></span>
+            <button type="button" id="refreshChain" class="btn small">Refresh</button>
+          </div>
+        </div>
+        <div class="block-list" id="blockList"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Decentralized Network System for Cryptocurrency</p>
+    </footer>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package coe892.blockchain;
+
+// Node-to-node sync: get chain, submit new block (distributed systems).
+service BlockchainNode {
+  // Get full chain for sync.
+  rpc GetChain(GetChainRequest) returns (ChainResponse);
+  // Submit a newly mined block to the network.
+  rpc SubmitBlock(BlockMessage) returns (Ack);
+  // Stream chain updates (optional).
+  rpc StreamBlocks(StreamBlocksRequest) returns (stream BlockMessage);
+}
+
+message GetChainRequest {
+  string node_id = 1;
+  int32 from_index = 2;  // 0 = full chain
+}
+
+message ChainResponse {
+  repeated BlockMessage blocks = 1;
+  int32 length = 2;
+}
+
+message BlockMessage {
+  int32 index = 1;
+  double timestamp = 2;
+  string previous_hash = 3;
+  int32 nonce = 4;
+  string hash = 5;
+  string transactions_json = 6;  // JSON array of transactions
+}
+
+message StreamBlocksRequest {
+  string node_id = 1;
+  int32 after_index = 2;
+}
+
+message Ack {
+  bool ok = 1;
+  string message = 2;
+}
