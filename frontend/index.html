@@ -125,8 +125,13 @@
           </div>
         </div>
         <div class="demo-scenario">
-          <strong>2. Tamper Protection (Distributed Chain Sync)</strong>
-          <p>This node is programmed to perform a full ledger validation during chain synchronization. It verifies every block's proof-of-work, previous hash linkage, and transaction signatures. If a malicious peer tries to push a compromised or "longer" chain, the node will automatically detect the corruption and reject it to protect the decentralized consensus.</p>
+          <strong>2. Tampered chain</strong>
+          <p>Edit <code>backend/data/chain.json</code> and change any historical block value (for example, a transaction amount). That tamper breaks the block hash chain, and the top status automatically updates from valid to invalid.</p>
+        </div>
+
+        <div class="demo-scenario">
+          <strong>3. Insufficient balance</strong>
+          <p>Try sending more than your balance (e.g. send 1000 with balance 10). The request is rejected with "Insufficient balance".</p>
         </div>
 
       </section>
@@ -137,6 +142,6 @@
       <p>Decentralized Network System for Cryptocurrency</p>
     </footer>
   </div>
-  <script src="/static/app.js?v=2"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>

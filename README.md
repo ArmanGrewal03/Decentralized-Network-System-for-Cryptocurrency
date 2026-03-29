@@ -48,8 +48,18 @@ docker-compose up --build
 ### gRPC Interface Test
 To verify the gRPC P2P layer and trigger a synchronization event, run the following command from the root directory:
 
+Unix/macOS (bash/zsh):
+
 ```bash
 PYTHONPATH=backend python3 -c "import grpc; from proto import blockchain_pb2 as pb2; from proto import blockchain_pb2_grpc as pb2_grpc; channel = grpc.insecure_channel('localhost:50051'); stub = pb2_grpc.BlockchainNodeStub(channel); stub.GetChain(pb2.GetChainRequest(node_id='test-peer', from_index=0)); print('gRPC Call Sent!')"
+```
+
+Windows (PowerShell):
+
+If `python` is not available on your system, use `python3` instead:
+
+```powershell
+$env:PYTHONPATH="backend"; python3 -c "import grpc; from proto import blockchain_pb2 as pb2; from proto import blockchain_pb2_grpc as pb2_grpc; channel = grpc.insecure_channel('localhost:50051'); stub = pb2_grpc.BlockchainNodeStub(channel); stub.GetChain(pb2.GetChainRequest(node_id='test-peer', from_index=0)); print('gRPC Call Sent!')"
 ```
 
 ### Network Logs

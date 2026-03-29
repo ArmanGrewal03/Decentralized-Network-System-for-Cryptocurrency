@@ -80,6 +80,7 @@ def serve():
     pb2_grpc.add_BlockchainNodeServicer_to_server(BlockchainNodeServicer(), server)
     server.add_insecure_port(f"{GRPC_HOST}:{GRPC_PORT}")
     server.start()
+    add_event("gRPC", f"Server started on {GRPC_HOST}:{GRPC_PORT}", "info")
     print(f"gRPC BlockchainNode server running on {GRPC_HOST}:{GRPC_PORT}")
     server.wait_for_termination()
 

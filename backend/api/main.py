@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from state import get_blockchain
-from nodes import get_nodes, register_node as register_peer, sync_chain_from_peers
+from nodes import get_nodes, register_node as register_peer, sync_chain_from_peers, verify_local_grpc_async
 
 # Optional: start RabbitMQ consumer in background
 def _start_background_consumers():
@@ -105,6 +105,10 @@ async def create_transaction(tx: TransactionCreate):
         publish_transaction(created)
     except Exception:
         pass
+    try:
+        verify_local_grpc_async()
+    except Exception:
+        pass
     return {"message": "Transaction queued", "transaction": created}
 
 
@@ -121,6 +125,10 @@ async def mine_block(req: MineRequest):
     try:
         from rabbitmq_publisher import publish_block
         publish_block(block.to_dict())
+    except Exception:
+        pass
+    try:
+        verify_local_grpc_async()
     except Exception:
         pass
     return {"message": "Block mined", "block": block.to_dict()}
@@ -212,6 +220,74 @@ async def demo_try_invalid_signature():
     if verify_transaction_signature(tx_b):
         raise HTTPException(status_code=500, detail="Demo failed: expected verification to fail")
     raise HTTPException(status_code=400, detail="Invalid transaction signature")
+
+
+@app.post("/demo/try-identity-spoof")
+async def demo_try_identity_spoof():
+    import time
+    import base64
+    try:
+        from wallet import sign_transaction, verify_transaction_signature, get_or_create_keypair
+    except ImportError:
+        raise HTTPException(status_code=501, detail="Cryptography not available")
+
+    get_or_create_keypair("alice")
+    attacker_priv, attacker_pub = get_or_create_keypair("_demo_spoofer")
+
+    forged_tx = {
+        "id": "demo-identity-spoof",
+        "sender": "alice",
+        "receiver": "bob",
+        "amount": 1,
+        "timestamp": time.time(),
+    }
+    forged_sig = sign_transaction(forged_tx, attacker_priv)
+    forged_tx["signature"] = base64.b64encode(forged_sig).decode()
+    forged_tx["public_key"] = base64.b64encode(attacker_pub).decode()
+
+    if verify_transaction_signature(forged_tx):
+        raise HTTPException(status_code=500, detail="Demo failed: spoofed sender was accepted")
+
+    try:
+        from logger import add_event
+        add_event("Security", "Rejected sender impersonation attempt (alice signed by attacker key)", "error")
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=400, detail="Sender identity mismatch: key does not belong to sender")
+
+
+@app.get("/demo/identity-spoof-preview")
+async def demo_identity_spoof_preview():
+    import time
+    import base64
+    try:
+        from wallet import sign_transaction, get_or_create_keypair
+    except ImportError:
+        raise HTTPException(status_code=501, detail="Cryptography not available")
+
+    _, alice_pub = get_or_create_keypair("alice")
+    attacker_priv, attacker_pub = get_or_create_keypair("_demo_spoofer")
+    forged_tx = {
+        "id": "demo-identity-spoof",
+        "sender": "alice",
+        "receiver": "bob",
+        "amount": 1,
+        "timestamp": time.time(),
+    }
+    forged_sig = sign_transaction(forged_tx, attacker_priv)
+
+    return {
+        "claimed_sender": "alice",
+        "signer_wallet": "_demo_spoofer",
+        "forged_transaction": {
+            **forged_tx,
+            "signature": base64.b64encode(forged_sig).decode(),
+            "public_key": base64.b64encode(attacker_pub).decode(),
+        },
+        "sender_registered_public_key": base64.b64encode(alice_pub).decode(),
+        "provided_public_key": base64.b64encode(attacker_pub).decode(),
+    }
 
 
 

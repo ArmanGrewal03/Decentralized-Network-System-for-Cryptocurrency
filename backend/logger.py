@@ -3,6 +3,12 @@ from typing import Any
 from pathlib import Path
 
 _events: list[dict[str, Any]] = []
+_LOG_PATH = Path(__file__).resolve().parent / "data" / "network.log"
+
+
+def _ensure_log_file() -> None:
+    _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _LOG_PATH.touch(exist_ok=True)
 
 def add_event(type: str, message: str, level: str = "info") -> None:
     event = {
@@ -20,11 +26,13 @@ def add_event(type: str, message: str, level: str = "info") -> None:
         log_to_file(f"[{type.upper()}] {message}")
 
 def log_to_file(message: str) -> None:
-    log_path = Path(__file__).resolve().parent / "data" / "network.log"
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_log_file()
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    with open(log_path, "a") as f:
+    with open(_LOG_PATH, "a") as f:
         f.write(f"[{timestamp}] {message}\n")
 
 def get_events() -> list[dict[str, Any]]:
     return _events
+
+
+_ensure_log_file()

@@ -41,6 +41,21 @@ def _save_wallets() -> None:
         json.dump(_load_wallets(), f, indent=2)
 
 
+def _registered_public_key_bytes(address: str) -> bytes | None:
+    if not address:
+        return None
+    wallet = _load_wallets().get(address)
+    if not wallet:
+        return None
+    pub_b64 = wallet.get("public_key")
+    if not pub_b64:
+        return None
+    try:
+        return base64.b64decode(pub_b64)
+    except Exception:
+        return None
+
+
 def get_or_create_keypair(address: str) -> tuple[bytes, bytes]:
     wallets = _load_wallets()
     if address in wallets:
@@ -78,6 +93,7 @@ def verify_transaction_signature(tx: dict[str, Any]) -> bool:
     if not tx.get("signature") or not tx.get("public_key"):
         return True  # unsigned allowed for backward compat
     try:
+        sender = (tx.get("sender") or "").strip()
         sig_b64 = tx["signature"]
         pub_b64 = tx["public_key"]
         if isinstance(sig_b64, str):
@@ -88,6 +104,10 @@ def verify_transaction_signature(tx: dict[str, Any]) -> bool:
             pub_bytes = base64.b64decode(pub_b64)
         else:
             pub_bytes = pub_b64
+        if sender and sender != "system":
+            registered_pub = _registered_public_key_bytes(sender)
+            if registered_pub is not None and registered_pub != pub_bytes:
+                return False
         public_key = Ed25519PublicKey.from_public_bytes(pub_bytes)
         payload = _payload_for_signature(tx)
         public_key.verify(signature, payload)

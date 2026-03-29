@@ -29,11 +29,13 @@ async function api(path, options = {}) {
 async function checkApi() {
   const status = el('apiStatus');
   try {
-    const data = await api('/status');
-    status.textContent = data.chain_valid ? 'Chain Valid' : 'Chain INVALID';
+    const data = await api('/health');
+    const chainLength = Number.isFinite(data.length) ? data.length : 0;
+    const validity = data.chain_valid ? 'Valid' : 'INVALID';
+    status.textContent = `API OK · Chain: ${chainLength} blocks · ${validity}`;
     status.className = 'api-status ' + (data.chain_valid ? 'ok' : 'invalid');
   } catch (err) {
-    status.textContent = 'Offline';
+    status.textContent = 'API Offline';
     status.className = 'api-status err';
   }
 }
@@ -280,6 +282,10 @@ function init() {
   refreshPending();
   refreshBalance();
   checkApi();
+
+  setInterval(() => {
+    checkApi();
+  }, 3000);
 }
 
 init();

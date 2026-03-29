@@ -549,6 +549,28 @@ button:hover, .btn:hover {
   margin-bottom: 1rem;
 }
 
+.demo-quick-diff {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.demo-diff-chip {
+  background: #1c2128;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #adbac7;
+}
+
+.demo-diff-chip.bad {
+  border-color: rgba(248, 81, 73, 0.45);
+  color: #ffd7d5;
+}
+
 .demo-data-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
