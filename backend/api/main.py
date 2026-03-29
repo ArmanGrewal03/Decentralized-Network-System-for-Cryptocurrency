@@ -169,7 +169,6 @@ async def get_signed_sample():
         "timestamp": time.time(),
         "public_key": base64.b64encode(pub).decode()
     }
-    # Create copy to sign
     sign_data = tx.copy()
     sig = sign_transaction(sign_data, priv)
     tx["signature"] = base64.b64encode(sig).decode()
@@ -197,7 +196,6 @@ async def demo_try_invalid_signature():
         from wallet import sign_transaction, verify_transaction_signature, get_or_create_keypair
     except ImportError:
         raise HTTPException(status_code=501, detail="Cryptography not available")
-    # Build tx_a (amount 1), sign it. Build tx_b (amount 100) with same signature.
     priv, pub = get_or_create_keypair("_demo_forge")
     tx_a = {"id": "demo-forge", "sender": "attacker", "receiver": "bob", "amount": 1, "timestamp": time.time()}
     sig = sign_transaction(tx_a, priv)
@@ -223,19 +221,18 @@ async def demo_try_tampered_sync():
     from state import get_blockchain
     chain = get_blockchain()
     
-    # Simulate a fake "longer" chain from a malicious peer
+    chain = get_blockchain()
     current_chain = [b.to_dict() for b in chain.chain]
     malicious_block = {
         "index": len(current_chain),
         "timestamp": time.time(),
         "transactions": [{"sender": "Hacker", "receiver": "Hacker", "amount": 99999, "is_coinbase": True}],
         "previous_hash": current_chain[-1]["hash"],
-        "nonce": 1234, # Improper PoW
+        "nonce": 1234,
         "hash": "fake-hash"
     }
     malicious_chain = current_chain + [malicious_block]
     
-    # This should trigger the replace_chain logic which runs validate_chain()
     if not chain.replace_chain(malicious_chain):
         raise HTTPException(status_code=400, detail="Untrusted Chain: Malicious peer rejected during sync.")
     return {"message": "Success (unexpected)"}

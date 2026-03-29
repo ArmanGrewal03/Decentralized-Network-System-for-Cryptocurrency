@@ -13,6 +13,10 @@ from proto import blockchain_pb2_grpc as pb2_grpc
 from state import get_blockchain
 from config import GRPC_HOST, GRPC_PORT
 
+try:
+    from logger import add_event
+except ImportError:
+    def add_event(type, msg, level="info"): pass
 
 class BlockchainNodeServicer(pb2_grpc.BlockchainNodeServicer):
 
@@ -28,10 +32,12 @@ class BlockchainNodeServicer(pb2_grpc.BlockchainNodeServicer):
                 hash=b.hash,
                 transactions_json=json.dumps(b.transactions),
             ))
+        add_event("gRPC", f"Received GetChain request from {request.node_id}", "info")
         return pb2.ChainResponse(blocks=blocks, length=len(blocks))
 
     def SubmitBlock(self, request, context):
         chain = get_blockchain()
+        add_event("gRPC", f"Received SubmitBlock: Index {request.index}", "info")
         try:
             block_dict = {
                 "index": request.index,
@@ -46,9 +52,13 @@ class BlockchainNodeServicer(pb2_grpc.BlockchainNodeServicer):
             if len(chain.chain) == block.index:
                 chain.chain.append(block)
                 chain._save()
+                add_event("gRPC", f"Accepted block {block.index} via gRPC", "success")
                 return pb2.Ack(ok=True, message="Block accepted")
         except Exception as e:
+            add_event("gRPC", f"SubmitBlock error: {str(e)}", "error")
             return pb2.Ack(ok=False, message=str(e))
+        
+        add_event("gRPC", f"Rejected block {request.index}: Index mismatch", "warning")
         return pb2.Ack(ok=False, message="Block index mismatch")
 
     def StreamBlocks(self, request, context):
@@ -65,7 +75,6 @@ class BlockchainNodeServicer(pb2_grpc.BlockchainNodeServicer):
                 transactions_json=json.dumps(b.transactions),
             )
 
-
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb2_grpc.add_BlockchainNodeServicer_to_server(BlockchainNodeServicer(), server)
@@ -73,7 +82,6 @@ def serve():
     server.start()
     print(f"gRPC BlockchainNode server running on {GRPC_HOST}:{GRPC_PORT}")
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     serve()

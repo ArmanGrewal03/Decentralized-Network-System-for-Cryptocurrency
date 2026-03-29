@@ -12,6 +12,11 @@ from config import (
     QUEUE_NEW_BLOCKS,
 )
 
+try:
+    from logger import add_event
+except ImportError:
+    def add_event(type, msg, level="info"): pass
+
 _connection = None
 _channel = None
 _lock = threading.Lock()
@@ -44,7 +49,9 @@ def publish_transaction(tx: dict) -> None:
             body=json.dumps(tx),
             properties=pika.BasicProperties(delivery_mode=2),
         )
+        add_event("RabbitMQ", f"Published PENDING_TX: {tx.get('id', 'unknown')}", "info")
     except Exception as e:
+        add_event("RabbitMQ", f"Publish transaction error: {str(e)}", "error")
         print(f"RabbitMQ publish_transaction error: {e}")
 
 
@@ -57,5 +64,7 @@ def publish_block(block: dict) -> None:
             body=json.dumps(block),
             properties=pika.BasicProperties(delivery_mode=2),
         )
+        add_event("RabbitMQ", f"Published NEW_BLOCK: Index {block.get('index', 'unknown')}", "info")
     except Exception as e:
+        add_event("RabbitMQ", f"Publish block error: {str(e)}", "error")
         print(f"RabbitMQ publish_block error: {e}")
