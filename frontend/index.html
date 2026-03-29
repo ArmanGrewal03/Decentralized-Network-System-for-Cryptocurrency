@@ -11,6 +11,11 @@
 </head>
 <body>
   <div class="app">
+    <header class="header">
+      <h1>Decentralized Cryptocurrency</h1>
+      <p class="tagline">P2P blockchain system with FastAPI, gRPC, and RabbitMQ</p>
+      <div class="api-status" id="apiStatus">Checking API…</div>
+    </header>
     <main class="main">
       <div class="row-flex">
         <section class="card wallet-card card-ledger">
@@ -78,12 +83,60 @@
         </div>
         <div class="block-list" id="blockList"></div>
       </section>
+
+      <section class="card security-demos-card card-crypto">
+        <h2>Integrity & Security Validation</h2>
+        <p class="hint">Demonstrate that invalid or tampered data is rejected.</p>
+        <div class="demo-scenario demo-invalid-sig">
+          <strong>1. Invalid signature</strong>
+          <p>We send a forged transaction (signature for amount 1, but claim amount 100). The server verifies and rejects it.</p>
+          <div class="demo-flow" id="demoFlow">
+            <span class="demo-step" id="demoStep1">1. Send forged tx</span>
+            <span class="demo-arrow">→</span>
+            <span class="demo-step" id="demoStep2">2. Server verifies</span>
+            <span class="demo-arrow">→</span>
+            <span class="demo-step" id="demoStep3">3. Result</span>
+          </div>
+          <button type="button" id="demoInvalidSigBtn" class="btn secondary">Try invalid signature</button>
+          
+          <div id="demoInvalidSigData" class="demo-data-inspector" style="display: none; margin-top: 1rem;">
+            <div class="demo-data-cols">
+              <div class="demo-data-col">
+                <label>Original Signed TX (Amount: 1)</label>
+                <div class="code-block" id="demoOriginalTx"></div>
+              </div>
+              <div class="demo-data-col">
+                <label>Forged TX (Amount: 100)</label>
+                <div class="code-block forged" id="demoForgedTx"></div>
+              </div>
+            </div>
+            <div id="demoVerificationOutcome" class="demo-logic-result" style="display: none; margin-top: 1rem;">
+              <div class="logic-step">Step 1: Rehash Data &rarr; <code id="demoLogicHash"></code></div>
+              <div class="logic-step">Step 2: Check Signature &rarr; <span class="badge error">FAIL: Mismatch</span></div>
+            </div>
+          </div>
+
+          <div class="demo-result-box" id="demoInvalidSigBox">
+            <div class="demo-result-icon" id="demoInvalidSigIcon"></div>
+            <div class="demo-result-text">
+              <strong id="demoInvalidSigTitle">—</strong>
+              <p id="demoInvalidSigDetail"></p>
+            </div>
+          </div>
+        </div>
+        <div class="demo-scenario">
+          <strong>2. Tamper Protection (Distributed Chain Sync)</strong>
+          <p>This node is programmed to perform a full ledger validation during chain synchronization. It verifies every block's proof-of-work, previous hash linkage, and transaction signatures. If a malicious peer tries to push a compromised or "longer" chain, the node will automatically detect the corruption and reject it to protect the decentralized consensus.</p>
+        </div>
+
+      </section>
+
     </main>
 
     <footer class="footer">
       <p>Decentralized Network System for Cryptocurrency</p>
     </footer>
   </div>
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=2"></script>
 </body>
 </html>

@@ -29,19 +29,35 @@ async function api(path, options = {}) {
 async function checkApi() {
   const status = el('apiStatus');
   try {
-    const h = await fetch(API_BASE + '/health');
-    const d = await h.json();
-    const chainLabel = d.chain_valid === false ? ' · Invalid' : ' · Valid';
-    status.textContent = `API OK · Chain: ${d.length || 0} blocks${chainLabel}`;
-    status.className = 'api-status ' + (d.chain_valid === false ? 'invalid' : 'ok');
-  } catch (e) {
-    status.textContent = 'API offline';
+    const data = await api('/status');
+    status.textContent = data.chain_valid ? 'Chain Valid' : 'Chain INVALID';
+    status.className = 'api-status ' + (data.chain_valid ? 'ok' : 'invalid');
+  } catch (err) {
+    status.textContent = 'Offline';
     status.className = 'api-status err';
+  }
+}
+
+async function refreshEvents() {
+  const container = el('consoleOutput');
+  if (!container) return;
+  try {
+    const data = await api('/events');
+    if (!Array.isArray(data.events)) return;
+    container.innerHTML = data.events.map(ev => `
+      <div class="log-entry ${ev.type.toLowerCase()}">
+        <span class="timestamp">[${new Date(ev.timestamp * 1000).toLocaleTimeString()}]</span>
+        <span class="tag">${ev.type}</span>: ${ev.message}
+      </div>
+    `).reverse().join('') || '<div class="log-entry system">Waiting for events...</div>';
+  } catch (err) {
+    console.warn("Event poll failed", err);
   }
 }
 
 function renderBlocks(chain) {
   const list = el('blockList');
+  if (!list) return;
   list.innerHTML = '';
   if (!chain || chain.length === 0) {
     list.innerHTML = '<div class="empty-state">Blockchain is empty</div>';
@@ -66,6 +82,7 @@ function renderBlocks(chain) {
 
 function renderPending(pending) {
   const list = el('pendingList');
+  if (!list) return;
   const countLabel = el('pendingCount');
   if (countLabel) countLabel.textContent = pending ? pending.length : 0;
   
@@ -92,10 +109,10 @@ function renderPending(pending) {
 async function refreshChain() {
   try {
     const data = await api('/chain');
-    el('chainLength').textContent = data.length;
+    if (el('chainLength')) el('chainLength').textContent = data.length;
     renderBlocks(data.chain);
   } catch (e) {
-    el('chainLength').textContent = '—';
+    if (el('chainLength')) el('chainLength').textContent = '—';
     renderBlocks([]);
   }
 }
@@ -112,96 +129,157 @@ async function refreshPending() {
 async function refreshBalance() {
   try {
     const data = await api('/balance/' + encodeURIComponent(myAddress));
-    el('balance').textContent = data.balance.toFixed(2);
+    if (el('balance')) el('balance').textContent = data.balance.toFixed(2);
   } catch (e) {
-    el('balance').textContent = '0.00';
+    if (el('balance')) el('balance').textContent = '0.00';
   }
 }
 
 function init() {
-  el('myAddress').value = myAddress;
+  if (el('myAddress')) el('myAddress').value = myAddress;
 
-  el('copyAddress').onclick = () => {
-    navigator.clipboard.writeText(myAddress);
-    const btn = el('copyAddress');
-    const oldText = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = oldText, 2000);
-  };
+  if (el('copyAddress')) {
+    el('copyAddress').onclick = () => {
+      navigator.clipboard.writeText(myAddress);
+      const btn = el('copyAddress');
+      const oldText = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = oldText, 2000);
+    };
+  }
 
-  el('newAddress').onclick = () => {
-    const newAddr = prompt('Enter a wallet name or leave blank for random:', '');
-    if (newAddr === null) return;
-    myAddress = newAddr.trim() || 'user_' + Math.random().toString(36).slice(2, 10);
-    localStorage.setItem('wallet_address', myAddress);
-    el('myAddress').value = myAddress;
-    refreshBalance();
-    refreshPending();
-  };
-
-  el('sendForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const to = el('toAddress').value.trim();
-    const amount = parseFloat(el('amount').value);
-    if (!to || amount <= 0) return;
-    
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Sending...';
-    
-    try {
-      await api('/transactions', {
-        method: 'POST',
-        body: JSON.stringify({ sender: myAddress, receiver: to, amount }),
-      });
-      showResult('sendResult', 'Transaction signed and broadcasted.');
-      el('toAddress').value = '';
-      el('amount').value = '';
-      refreshPending();
+  if (el('newAddress')) {
+    el('newAddress').onclick = () => {
+      const newAddr = prompt('Enter a wallet name:', '');
+      if (newAddr === null) return;
+      myAddress = newAddr.trim() || 'user_' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('wallet_address', myAddress);
+      el('myAddress').value = myAddress;
       refreshBalance();
-    } catch (err) {
-      showResult('sendResult', err.message, true);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Send Transaction';
-      setTimeout(() => el('sendResult').classList.remove('show'), 5000);
-    }
-  };
+      refreshPending();
+    };
+  }
 
-  el('mineBtn').onclick = async () => {
-    const btn = el('mineBtn');
-    btn.disabled = true;
-    btn.textContent = 'Mining in progress...';
-    el('mineResult').classList.remove('show');
-    
-    try {
-      const data = await api('/mine', {
-        method: 'POST',
-        body: JSON.stringify({ miner_address: myAddress }),
-      });
-      showResult('mineResult', `Mined Block #${data.block.index}. Reward received.`);
+  if (el('sendForm')) {
+    el('sendForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const to = el('toAddress').value.trim();
+      const amount = parseFloat(el('amount').value);
+      if (!to || amount <= 0) return;
+      
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      
+      try {
+        await api('/transactions', {
+          method: 'POST',
+          body: JSON.stringify({ sender: myAddress, receiver: to, amount }),
+        });
+        showResult('sendResult', 'Transaction signed and broadcasted.');
+        el('toAddress').value = '';
+        el('amount').value = '';
+        refreshPending();
+        refreshBalance();
+      } catch (err) {
+        showResult('sendResult', err.message, true);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Transaction';
+        setTimeout(() => el('sendResult').classList.remove('show'), 5000);
+      }
+    };
+  }
+
+  if (el('mineBtn')) {
+    el('mineBtn').onclick = async () => {
+      const btn = el('mineBtn');
+      btn.disabled = true;
+      btn.textContent = 'Mining...';
+      
+      try {
+        const data = await api('/mine', {
+          method: 'POST',
+          body: JSON.stringify({ miner_address: myAddress }),
+        });
+        showResult('mineResult', `Mined Block #${data.block.index}.`);
+        refreshChain();
+        refreshPending();
+        refreshBalance();
+      } catch (err) {
+        showResult('mineResult', err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Mine New Block';
+      }
+    };
+  }
+
+  if (el('refreshChain')) {
+    el('refreshChain').onclick = () => {
       refreshChain();
       refreshPending();
       refreshBalance();
-    } catch (err) {
-      showResult('mineResult', err.message, true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Mine New Block';
-      setTimeout(() => el('mineResult').classList.remove('show'), 5000);
-    }
-  };
+    };
+  }
 
-  el('refreshChain').onclick = () => {
-    refreshChain();
-    refreshPending();
-    refreshBalance();
-  };
+  const demoInvalidSigBtn = el('demoInvalidSigBtn');
+  if (demoInvalidSigBtn) {
+    demoInvalidSigBtn.onclick = async () => {
+      const box = el('demoInvalidSigBox');
+      const iconEl = el('demoInvalidSigIcon');
+      const titleEl = el('demoInvalidSigTitle');
+      const detailEl = el('demoInvalidSigDetail');
+      const step1 = el('demoStep1');
+      const step2 = el('demoStep2');
+      const step3 = el('demoStep3');
+      if (!box) return;
+
+      box.className = 'demo-result-box demo-result-pending';
+      if (iconEl) iconEl.textContent = '⋯';
+      if (titleEl) titleEl.textContent = 'Checking…';
+      if (detailEl) detailEl.textContent = '';
+      if (step1) step1.classList.add('active');
+      if (step2) step2.classList.remove('active');
+      if (step3) step3.classList.remove('active');
+      el('demoInvalidSigData').style.display = 'none';
+
+      await new Promise(r => setTimeout(r, 600));
+      if (step1) step1.classList.remove('active');
+      if (step2) step2.classList.add('active');
+
+      el('demoInvalidSigData').style.display = 'block';
+      el('demoOriginalTx').innerHTML = JSON.stringify({
+        sender: "attacker", receiver: "bob", amount: 1, signature: "v2.sig.88ac..."
+      }, null, 2);
+      el('demoForgedTx').innerHTML = JSON.stringify({
+        sender: "attacker", receiver: "bob", amount: 100, signature: "v2.sig.88ac..."
+      }, null, 2).replace('"amount": 100', '<span class="highlight-red">"amount": 100</span>');
+
+      el('demoLogicHash').textContent = "Hash Check Failed";
+      el('demoVerificationOutcome').style.display = 'block';
+
+      try {
+        await api('/demo/try-invalid-signature', { method: 'POST' });
+        box.className = 'demo-result-box demo-result-accepted';
+        if (iconEl) iconEl.textContent = '⚠';
+        if (titleEl) titleEl.textContent = 'Accepted (Error)';
+      } catch (err) {
+        box.className = 'demo-result-box demo-result-rejected';
+        if (iconEl) iconEl.textContent = '✓';
+        if (titleEl) titleEl.textContent = 'Rejected';
+        if (detailEl) detailEl.textContent = err.message || 'Tamper detected.';
+      }
+      if (step2) step2.classList.remove('active');
+      if (step3) step3.classList.add('active');
+      refreshEvents();
+    };
+  }
 
   refreshChain();
   refreshPending();
   refreshBalance();
+  checkApi();
 }
 
 init();
-

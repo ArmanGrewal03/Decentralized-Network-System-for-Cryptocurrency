@@ -9,9 +9,11 @@ from .transaction import create_transaction
 
 try:
     from wallet import sign_tx_if_wallet, verify_transaction_signature
+    from logger import add_event
 except ImportError:
     sign_tx_if_wallet = lambda tx: tx
     verify_transaction_signature = lambda tx: True
+    def add_event(cat, msg, lvl="info"): print(f"[{cat}] {msg}")
 
 DIFFICULTY = 4
 LEADING_ZEROS = "0" * DIFFICULTY
@@ -44,6 +46,7 @@ class Blockchain:
         genesis.nonce = self._proof_of_work(genesis)
         genesis.hash = genesis.compute_hash()
         self.chain.append(genesis)
+        add_event("Consensus", "Genesis block created.", "success")
         self._save()
 
     def _proof_of_work(self, block: Block) -> int:
@@ -61,9 +64,11 @@ class Blockchain:
     def add_transaction(self, sender: str, receiver: str, amount: float, tx_id: str | None = None) -> dict[str, Any]:
         tx = create_transaction(sender, receiver, amount, tx_id)
         if not verify_transaction_signature(tx):
+            add_event("Security", f"Rejected transaction from {sender}: Invalid signature.", "error")
             raise ValueError("Invalid transaction signature")
         tx = sign_tx_if_wallet(tx)
         self.pending_transactions.append(tx)
+        add_event("Network", f"Transaction added to pool: {sender} -> {receiver} ({amount} COIN)", "info")
         return tx
 
     def mine_block(self, miner_address: str) -> Block | None:
@@ -84,6 +89,7 @@ class Blockchain:
         new_block.nonce = self._proof_of_work(new_block)
         new_block.hash = new_block.compute_hash()
         self.chain.append(new_block)
+        add_event("Mining", f"Mined Block #{new_block.index} successfully (Nonce: {new_block.nonce})", "success")
         self._save()
         return new_block
 
@@ -126,8 +132,17 @@ class Blockchain:
     def replace_chain(self, new_chain_data: list[dict[str, Any]]) -> bool:
         new_blocks = [Block.from_dict(b) for b in new_chain_data]
         if len(new_blocks) <= len(self.chain):
+            add_event("Consensus", f"Rejected chain from peer: Shorter or equal length ({len(new_blocks)}).", "warning")
             return False
+            
+        temp_blockchain = Blockchain()
+        temp_blockchain.chain = new_blocks
+        if not temp_blockchain.validate_chain():
+            add_event("Security", "REJECTED peer node: Chain validation failed (Tampered/Corrupt).", "error")
+            return False
+
         self.chain = new_blocks
+        add_event("Consensus", f"Adopted longer valid chain from peer (New Height: {len(self.chain)}).", "success")
         self._save()
         return True
 
