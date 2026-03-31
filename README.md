@@ -13,26 +13,6 @@ A lightweight blockchain-based cryptocurrency implementation leveraging FastAPI,
 
 ## Quick Start
 
-### Local Installation
-
-1. **Setup Environment**:
-   ```bash
-   cd backend
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-2. **Generate Native gRPC Code**:
-   ```bash
-   python generate_grpc.py
-   ```
-
-3. **Launch Server**:
-   ```bash
-   python run.py
-   ```
-
 The dashboard is accessible at `http://localhost:8000/app`.
 
 ### Docker Deployment
@@ -41,25 +21,6 @@ To spin up the full stack (including RabbitMQ) using Docker:
 
 ```bash
 docker-compose up --build
-```
-
-## Testing & Monitoring
-
-### gRPC Interface Test
-To verify the gRPC P2P layer and trigger a synchronization event, run the following command from the root directory:
-
-Unix/macOS (bash/zsh):
-
-```bash
-PYTHONPATH=backend python3 -c "import grpc; from proto import blockchain_pb2 as pb2; from proto import blockchain_pb2_grpc as pb2_grpc; channel = grpc.insecure_channel('localhost:50051'); stub = pb2_grpc.BlockchainNodeStub(channel); stub.GetChain(pb2.GetChainRequest(node_id='test-peer', from_index=0)); print('gRPC Call Sent!')"
-```
-
-Windows (PowerShell):
-
-If `python` is not available on your system, use `python3` instead:
-
-```powershell
-$env:PYTHONPATH="backend"; python3 -c "import grpc; from proto import blockchain_pb2 as pb2; from proto import blockchain_pb2_grpc as pb2_grpc; channel = grpc.insecure_channel('localhost:50051'); stub = pb2_grpc.BlockchainNodeStub(channel); stub.GetChain(pb2.GetChainRequest(node_id='test-peer', from_index=0)); print('gRPC Call Sent!')"
 ```
 
 ### Network Logs
@@ -79,4 +40,3 @@ pytest tests/ -v
 ```
 
 ---
-*Developed for research into decentralized networking and cryptographic ledger systems.*
